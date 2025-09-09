@@ -1661,8 +1661,35 @@ def patch_cup_names(args: argparse.Namespace, page_count: int, iso_tmp_dir: str)
         for cupname_filename in all_cup_filenames:
             cupname_filepath = os.path.join(timg_dir, cupname_filename)
             if not os.path.exists(cupname_filepath):
-                log.warning(f'Cup icon file not found: {cupname_filepath}')
-                continue
+                # Try to source missing cup icons from the local repository folder
+                # `cup_icons_bti/` and conform them to expected size/format.
+                local_cup_icon = os.path.join(script_dir, 'cup_icons_bti', cupname_filename)
+                if os.path.exists(local_cup_icon):
+                    try:
+                        os.makedirs(timg_dir, exist_ok=True)
+                        shutil.copyfile(local_cup_icon, cupname_filepath)
+                        # Ensure IA4 256x32 as used by cup name images.
+                        conform_bti_image(cupname_filepath, LABEL_IMAGE_SIZE[0], LABEL_IMAGE_SIZE[1], 'IA4')
+                        log.info(f'Inserted missing cup icon from repo: {cupname_filepath}')
+                    except Exception as e:
+                        log.warning(f'Failed to import cup icon from repo for {cupname_filename}: {e}')
+                        continue
+                elif args.extender_cup and 'reverse2' in cupname_filename:
+                    # For Extender Cup, generate a placeholder so downstream logic can proceed.
+                    try:
+                        generate_bti_image_from_bitmap_font(EXTENDER_CUP_LABEL[language],
+                                                            LABEL_IMAGE_SIZE[0],
+                                                            LABEL_IMAGE_SIZE[1],
+                                                            'IA4', (0, 0, 0, 0),
+                                                            cupname_filepath,
+                                                            default_scale=1.0)
+                        log.info(f'Generated placeholder for missing Extender Cup icon: {cupname_filepath}')
+                    except Exception as e:
+                        log.warning(f'Failed to generate Extender Cup placeholder for {cupname_filename}: {e}')
+                        continue
+                else:
+                    log.warning(f'Cup icon file not found: {cupname_filepath}')
+                    continue
                 
             log.info(f'Modifying {cupname_filepath}...')
 
