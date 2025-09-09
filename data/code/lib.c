@@ -291,6 +291,106 @@ const char* const g_extender_cup_cup_filenames[4] = {
     "CupName_SPECIAL_CUP.bti",
 };
 
+// Generated cup filenames arrays for different pages
+// Cup filenames for page 0
+const char* const g_cup_filenames_page_0[4] = {
+    "CupName_MUSHROOM_CUP.bti",
+    "CupName_FIRE_FLOWER_CUP.bti",
+    "CupName_STAR_CUP.bti",
+    "CupName_SPECIAL_CUP.bti",
+};
+
+// Cup filenames for page 1
+const char* const g_cup_filenames_page_1[4] = {
+    "CupName_SHELL_CUP.bti",
+    "CupName_BANANA_CUP.bti",
+    "CupName_LEAF_CUP.bti",
+    "CupName_LIGHTNING_CUP.bti",
+};
+
+// Cup filenames for page 2
+const char* const g_cup_filenames_page_2[4] = {
+    "CupName_FEATHER_CUP.bti",
+    "CupName_ICE_FLOWER_CUP.bti",
+    "CupName_P_BALLOON_CUP.bti",
+    "CupName_SHINE_SPRITE_CUP.bti",
+};
+
+// Cup filenames for page 3
+const char* const g_cup_filenames_page_3[4] = {
+    "CupName_BOOMERANG_CUP.bti",
+    "CupName_SUPER_BELL_CUP.bti",
+    "CupName_DOUBLE_CHERRY_CUP.bti",
+    "CupName_PENGUIN_CUP.bti",
+};
+
+// Cup filenames for page 4
+const char* const g_cup_filenames_page_4[4] = {
+    "CupName_1_UP_CUP.bti",
+    "CupName_BOB_OMB_CUP.bti",
+    "CupName_BULLET_BILL_CUP.bti",
+    "CupName_SUPER_HORN_CUP.bti",
+};
+
+// Cup filenames for page 5
+const char* const g_cup_filenames_page_5[4] = {
+    "CupName_WING_CAP_CUP.bti",
+    "CupName_RED_SHELL_CUP.bti",
+    "CupName_BLUE_SHELL_CUP.bti",
+    "CupName_MOON_CUP.bti",
+};
+
+// Cup filenames for page 6
+const char* const g_cup_filenames_page_6[4] = {
+    "CupName_MEGA_MUSHROOM_CUP.bti",
+    "CupName_MINI_MUSHROOM_CUP.bti",
+    "CupName_POW_BLOCK_CUP.bti",
+    "CupName_BLOOPER_CUP.bti",
+};
+
+// Cup filenames for page 7
+const char* const g_cup_filenames_page_7[4] = {
+    "CupName_COIN_CUP.bti",
+    "CupName_PIRANHA_PLANT_CUP.bti",
+    "CupName_FAKE_ITEM_BOX_CUP.bti",
+    "CupName_HAMMER_CUP.bti",
+};
+
+// Cup filenames for page 8
+const char* const g_cup_filenames_page_8[4] = {
+    "CupName_PROPELLER_MUSHROOM_CUP.bti",
+    "CupName_SUPER_ACORN_CUP.bti",
+    "CupName_SILVER_FLOWER_CUP.bti",
+    "CupName_GOLD_FLOWER_CUP.bti",
+};
+
+// Function to get cup filenames for a specific page
+// This allows different pages to have different cup icons
+const char* const* get_cup_filenames_for_page(int page_index) {
+    switch (page_index) {
+        case 0:
+            return g_cup_filenames_page_0;
+        case 1:
+            return g_cup_filenames_page_1;
+        case 2:
+            return g_cup_filenames_page_2;
+        case 3:
+            return g_cup_filenames_page_3;
+        case 4:
+            return g_cup_filenames_page_4;
+        case 5:
+            return g_cup_filenames_page_5;
+        case 6:
+            return g_cup_filenames_page_6;
+        case 7:
+            return g_cup_filenames_page_7;
+        case 8:
+            return g_cup_filenames_page_8;
+        default:
+            return g_cup_filenames_page_0;
+    }
+}
+
 // Filename of the preview image to be shown for the Extender Cup.
 const char g_extender_cup_preview_filenames[] = "extender_cup_preview.bti";
 

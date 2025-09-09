@@ -218,6 +218,124 @@ CUP_NAMES = ('Mushroom Cup', 'Flower Cup', 'Star Cup', 'Special Cup')
 English names of the four cups.
 """
 
+# Cup icon mapping for different pages
+# Each page can have different cup icons instead of repeating the same ones
+PAGE_CUP_ICONS = {
+    0: ('Mushroom Cup', 'Fire Flower Cup', 'Star Cup', 'Special Cup'),
+    1: ('Shell Cup', 'Banana Cup', 'Leaf Cup', 'Lightning Cup'),
+    2: ('Feather Cup', 'Ice Flower Cup', 'P Ballon Cup', 'Shine Sprite Cup'),
+    3: ('Boomerang Cup', 'Super Bell Cup', 'Double Cherry Cup', 'Penguin Cup'),
+    4: ('1-Up Cup', 'Bob-omb Cup', 'Bullet Bill Cup', 'Super Horn Cup'),
+    5: ('Wing Cap Cup', 'Red Shell Cup', 'Blue Shell Cup', 'Moon Cup'),
+    6: ('Mega Mushroom Cup', 'Mini Mushroom Cup', 'POW Block Cup', 'Blooper Cup'),
+    7: ('Coin Cup', 'Piranha Plant Cup', 'Fake Item Box Cup', 'Hammer Cup'),
+    8: ('Propeller Mushroom Cup', 'Super Acorn Cup', 'Silver Flower Cup', 'Gold Flower Cup'),
+}
+"""
+Mapping of page indices to cup icon names. Each page can have different cup icons.
+The default is to use the same cups for all pages, but this can be customized.
+"""
+
+def get_cup_icons_for_page(page_index: int) -> tuple[str, str, str, str]:
+    """
+    Get the cup icon names for a specific page.
+    
+    Args:
+        page_index: The page index (0-based)
+        
+    Returns:
+        A tuple of 4 cup icon names for the page
+    """
+    return PAGE_CUP_ICONS.get(page_index, PAGE_CUP_ICONS[0])
+
+def get_cup_icon_filename(cup_name: str) -> str:
+    """
+    Convert a cup name to its corresponding filename.
+    
+    Args:
+        cup_name: The cup name (e.g., 'Mushroom Cup')
+        
+    Returns:
+        The corresponding filename (e.g., 'cupname_mushroom_cup.bti')
+    """
+    cup_name_mapping = {
+        'Mushroom Cup': 'cupname_mushroom_cup.bti',
+        'Flower Cup': 'cupname_flower_cup.bti',
+        'Star Cup': 'cupname_star_cup.bti',
+        'Special Cup': 'cupname_special_cup.bti',
+        'Shell Cup': 'cupname_shell_cup.bti',
+        'Banana Cup': 'cupname_banana_cup.bti',
+        'Leaf Cup': 'cupname_leaf_cup.bti',
+        'Lightning Cup': 'cupname_lightning_cup.bti',
+        'Feather Cup': 'cupname_feather_cup.bti',
+        'Ice Flower Cup': 'cupname_ice_flower_cup.bti',
+        'P Balloon Cup': 'cupname_p_balloon_cup.bti',
+        'Shine Sprite Cup': 'cupname_shine_sprite_cup.bti',
+        'Boomerang Cup': 'cupname_boomerang_cup.bti',
+        'Super Bell Cup': 'cupname_super_bell_cup.bti',
+        'Double Cherry Cup': 'cupname_double_cherry_cup.bti',
+        'Penguin Cup': 'cupname_penguin_cup.bti',
+        '1-Up Cup': 'cupname_1_up_cup.bti',
+        'Bob-omb Cup': 'cupname_bob_omb_cup.bti',
+        'Bullet Bill Cup': 'cupname_bullet_bill_cup.bti',
+        'Super Horn Cup': 'cupname_super_horn_cup.bti',
+        'Wing Cap Cup': 'cupname_wing_cap_cup.bti',
+        'Red Shell Cup': 'cupname_red_shell_cup.bti',
+        'Blue Shell Cup': 'cupname_blue_shell_cup.bti',
+        'Moon Cup': 'cupname_moon_cup.bti',
+        'Mega Mushroom Cup': 'cupname_mega_mushroom_cup.bti',
+        'Mini Mushroom Cup': 'cupname_mini_mushroom_cup.bti',
+        'POW Block Cup': 'cupname_pow_block_cup.bti',
+        'Blooper Cup': 'cupname_blooper_cup.bti',
+        'Coin Cup': 'cupname_coin_cup.bti',
+        'Piranha Plant Cup': 'cupname_piranha_plant_cup.bti',
+        'Fake Item Box Cup': 'cupname_fake_item_box_cup.bti',
+        'Hammer Cup': 'cupname_hammer_cup.bti',
+        'Propeller Mushroom Cup': 'cupname_propeller_mushroom_cup.bti',
+        'Super Acorn Cup': 'cupname_super_acorn_cup.bti',
+        'Silver Flower Cup': 'cupname_silver_flower_cup.bti',
+        'Gold Flower Cup': 'cupname_gold_flower_cup.bti',
+    }
+    return cup_name_mapping.get(cup_name, 'cupname_mushroom_cup.bti')
+
+def generate_cup_filenames_c_code(page_count: int) -> str:
+    """
+    Generate C code for cup filenames arrays for different pages.
+    
+    Args:
+        page_count: The number of pages
+        
+    Returns:
+        C code string containing the cup filenames arrays
+    """
+    c_code = []
+    c_code.append("// Generated cup filenames arrays for different pages")
+    c_code.append("")
+    
+    for page_index in range(page_count):
+        cup_icons = get_cup_icons_for_page(page_index)
+        cup_filenames = [get_cup_icon_filename(cup).replace('cupname_', 'CupName_').replace('.bti', '.bti').upper() for cup in cup_icons]
+        
+        c_code.append(f"// Cup filenames for page {page_index}")
+        c_code.append(f"const char* const g_cup_filenames_page_{page_index}[4] = {{")
+        for i, filename in enumerate(cup_filenames):
+            c_code.append(f'    "{filename}",')
+        c_code.append("};")
+        c_code.append("")
+    
+    c_code.append("// Function to get cup filenames for a specific page")
+    c_code.append("const char* const* get_cup_filenames_for_page(int page_index) {")
+    c_code.append("    switch (page_index) {")
+    for page_index in range(page_count):
+        c_code.append(f"        case {page_index}:")
+        c_code.append(f"            return g_cup_filenames_page_{page_index};")
+    c_code.append("        default:")
+    c_code.append("            return g_cup_filenames_page_0;")
+    c_code.append("    }")
+    c_code.append("}")
+    
+    return "\n".join(c_code)
+
 MAX_ISO_SIZE = 1459978240
 """
 The maximum size of the GameCube ISO files that GameCube or Wii can support.
@@ -1529,12 +1647,23 @@ def patch_cup_names(args: argparse.Namespace, page_count: int, iso_tmp_dir: str)
         courseselect_dirpath = os.path.join(language_dirpath, 'courseselect')
         timg_dir = os.path.join(courseselect_dirpath, 'timg')
 
-        cupname_filenames = ('cupname_flower_cup.bti', 'cupname_mushroom_cup.bti',
-                             'cupname_reverse2_cup.bti', 'cupname_special_cup.bti',
-                             'cupname_star_cup.bti')
+        # Get all unique cup icon filenames that will be needed
+        all_cup_filenames = set()
+        for page_index in range(page_count):
+            cup_icons = get_cup_icons_for_page(page_index)
+            for cup_icon in cup_icons:
+                all_cup_filenames.add(get_cup_icon_filename(cup_icon))
+        
+        # Add the reverse2 cup for extender cup
+        if args.extender_cup:
+            all_cup_filenames.add('cupname_reverse2_cup.bti')
 
-        for cupname_filename in cupname_filenames:
+        for cupname_filename in all_cup_filenames:
             cupname_filepath = os.path.join(timg_dir, cupname_filename)
+            if not os.path.exists(cupname_filepath):
+                log.warning(f'Cup icon file not found: {cupname_filepath}')
+                continue
+                
             log.info(f'Modifying {cupname_filepath}...')
 
             new_cupname_filepath = with_page_index_suffix(0, cupname_filepath)
@@ -1551,6 +1680,19 @@ def patch_cup_names(args: argparse.Namespace, page_count: int, iso_tmp_dir: str)
                 page_index += 1
 
                 page_cupname_filepath = with_page_index_suffix(page_index, cupname_filepath)
+                
+                # Check if this cup icon should be used for this page
+                page_cup_icons = get_cup_icons_for_page(page_index)
+                cup_icon_name = None
+                for cup_icon in page_cup_icons:
+                    if get_cup_icon_filename(cup_icon) == cupname_filename:
+                        cup_icon_name = cup_icon
+                        break
+                
+                if cup_icon_name is None:
+                    # This cup icon is not used for this page, skip it
+                    continue
+                
                 make_link(cupname_filepath, page_cupname_filepath)
 
                 if not args.skip_cup_names or extender_cup:
