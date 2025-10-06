@@ -40,7 +40,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore", category=DeprecationWarning)
     import audioop  # Deprecated in Python 3.11.
 
-__version__ = '2.4.1'
+__version__ = '2.9.0'
 
 LANGUAGES = ('English', 'French', 'German', 'Italian', 'Japanese', 'Spanish')
 """
@@ -3371,6 +3371,17 @@ OPTIONAL_ARGUMENTS = {
             bool,
             'If enabled, the All-Cup Tour will be replaced with the Extender Cup, which features '
             'all the courses included in all the configured course pages.',
+        ),
+        (
+            'LAN Choose Character and Kart',
+            bool,
+            'If enabled, the LAN Choose Character & Kart code patch will be added to the game, '
+            'allowing character and kart selection in LAN mode.\n\n'
+            'Since version v1.1, there is a counter that shows the number of ready karts out of '
+            'all participating karts. The host can force the Character Selection screen to be '
+            'exited by holding `B`. Finally, the LAN entry screen is skipped for subsequent '
+            'races/battles.\n\n'
+            'Code patch version: v1.1',
         ),
         ('---', None, None),
         (

@@ -46,6 +46,11 @@ data_dir = os.path.join(script_dir, 'data')
 gui_dir = os.path.join(data_dir, 'gui')
 placeholder_race_track_dir = os.path.join(data_dir, 'courses', 'dstestcircle')
 placeholder_battle_stage_dir = os.path.join(data_dir, 'courses', 'dstestcircle_battlestage')
+executable_path = (os.getenv('APPIMAGE')
+                   or (sys.executable if mkdd_extender.frozen else mkdd_extender.script_path))
+executable_dir = os.path.dirname(executable_path)
+portable_path = os.path.join(executable_dir, 'portable.txt')
+is_portable = os.path.isfile(portable_path)
 
 
 def set_dark_theme(app: QtWidgets.QApplication):
@@ -157,7 +162,7 @@ def markdown_to_html(title: str, text: str) -> str:
     inline_code_padding = (f'<span style="font-size: {int(default_font_size / 2.5)}px;">'
                            '&nbsp;</span>')
 
-    html = f'<h3>{title}</h3>\n'
+    html = f'<h3 style="white-space: nowrap;">{title}</h3>\n'
     for paragraph in text.split('\n\n'):
         paragraph = paragraph.strip()
         paragraph = re.sub(r'\[(.+)\]\((.+)\)', r'<a href="\2">\1</a>', paragraph)
@@ -669,6 +674,9 @@ class DropWidget(QtWidgets.QWidget):
         if id(event.source()) in self._source_ids:
             event.accept()
 
+            if self._overlay_widget is not None:
+                self._overlay_widget.deleteLater()
+
             self._overlay_widget = QtWidgets.QWidget(self)
             self._overlay_widget.setAutoFillBackground(True)
             palette = self._overlay_widget.palette()
@@ -688,14 +696,16 @@ class DropWidget(QtWidgets.QWidget):
     def dragLeaveEvent(self, event: QtGui.QDragLeaveEvent):
         _ = event
 
-        self._overlay_widget.deleteLater()
-        self._overlay_widget = None
+        if self._overlay_widget is not None:
+            self._overlay_widget.deleteLater()
+            self._overlay_widget = None
 
     def dropEvent(self, event: QtGui.QDropEvent):
         event.accept()
 
-        self._overlay_widget.deleteLater()
-        self._overlay_widget = None
+        if self._overlay_widget is not None:
+            self._overlay_widget.deleteLater()
+            self._overlay_widget = None
 
 
 class DragTableWidget(QtWidgets.QTableWidget):
@@ -2062,9 +2072,19 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
                 option_member_name = f'_{mkdd_extender.option_label_as_variable_name(option_label)}'
                 setattr(self, option_member_name, None)
 
-        organization = application = 'mkdd-extender'
-        self._settings = QtCore.QSettings(QtCore.QSettings.IniFormat, QtCore.QSettings.UserScope,
-                                          organization, application)
+        ORGANIZATION = APPLICATION = 'mkdd-extender'
+
+        if is_portable:
+            config_path = os.path.join(executable_dir, f'{APPLICATION}.ini')
+            self._settings = QtCore.QSettings(config_path, QtCore.QSettings.IniFormat)
+        else:
+            self._settings = QtCore.QSettings(
+                QtCore.QSettings.IniFormat,
+                QtCore.QSettings.UserScope,
+                ORGANIZATION,
+                APPLICATION,
+            )
+        first_run = not os.path.exists(self._settings.fileName())
 
         self.resize(1100, 700)
         self.setWindowTitle(f'MKDD Extender {mkdd_extender.__version__}')
@@ -2096,14 +2116,14 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
         self._pending_sync_updates = 0
 
         menu = self.menuBar()
-        file_menu = menu.addMenu('File')
+        file_menu = menu.addMenu('&File')
         open_configuration_directory_action = file_menu.addAction('Open Configuration Directory...')
         open_configuration_directory_action.triggered.connect(
             self._on_open_configuration_directory_action_triggered)
         file_menu.addSeparator()
         quit_action = file_menu.addAction('Quit')
         quit_action.triggered.connect(self.close)
-        edit_menu = menu.addMenu('Edit')
+        edit_menu = menu.addMenu('&Edit')
         self._undo_action = edit_menu.addAction('Undo')
         self._undo_action.setShortcut(QtGui.QKeySequence('Ctrl+Z'))
         self._undo_action.triggered.connect(self._undo)
@@ -2116,14 +2136,14 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
         options_action = edit_menu.addAction('Options')
         options_action.setIcon(options_icon)
         options_action.triggered.connect(self._on_options_action_triggered)
-        tools_menu = menu.addMenu('Tools')
+        tools_menu = menu.addMenu('&Tools')
         pack_generator_action = tools_menu.addAction('Pack Generator')
         pack_generator_action.triggered.connect(self._on_pack_generator_action_triggered)
         text_image_builder_action = tools_menu.addAction('Text Image Builder')
         text_image_builder_action.triggered.connect(self._on_text_image_builder_action_triggered)
         ast_converter_action = tools_menu.addAction('AST Converter')
         ast_converter_action.triggered.connect(self._on_ast_converter_action_triggered)
-        view_menu = menu.addMenu('View')
+        view_menu = menu.addMenu('&View')
         self._fullscreen = view_menu.addAction('Fullscreen')
         self._fullscreen.setShortcut(QtGui.QKeySequence(QtCore.Qt.Key_F11))
         self._fullscreen.setCheckable(True)
@@ -2131,9 +2151,9 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
         purge_preview_caches_action = view_menu.addAction('Purge Preview Caches')
         purge_preview_caches_action.triggered.connect(
             self._on_purge_preview_caches_action_triggered)
-        shelf_menu = menu.addMenu('Shelf')
+        shelf_menu = menu.addMenu('&Shelf')
         shelf_menu.aboutToShow.connect(self._on_shelf_menu_about_to_show)
-        help_menu = menu.addMenu('Help')
+        help_menu = menu.addMenu('&Help')
         instructions_action = help_menu.addAction('Instructions')
         instructions_action.triggered.connect(self._open_instructions_dialog)
         about_action = help_menu.addAction('About')
@@ -2453,6 +2473,10 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
         self._pending_undo_actions = 1
         QtCore.QTimer.singleShot(0, self._process_undo_action)
 
+        if first_run:
+            QtCore.QTimer.singleShot(500,
+                                     lambda: self._save_settings() or self._open_first_run_dialog())
+
     def closeEvent(self, event: QtGui.QCloseEvent):
         self._save_settings()
 
@@ -2717,6 +2741,42 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
             self._pending_undo_actions += 1
             self._process_undo_action()
 
+    def _open_first_run_dialog(self):
+        dialog = QtWidgets.QDialog(self)
+        dialog.setWindowTitle('Hello!')
+        dialog.deleteLater()
+
+        message = (
+            '🌱 This is the first time that MKDD Extender is launched. Would you like to see the '
+            '<b>Instructions</b> dialog?')
+        post_message = (
+            '<small><small>(The dialog can always be accessed via the <b>Help > Instructions</b> '
+            'menu action.)</small></small>')
+
+        no_button = QtWidgets.QPushButton('No')
+        no_button.setAutoDefault(False)
+        no_button.clicked.connect(dialog.close)
+
+        show_button = QtWidgets.QPushButton('Show Instructions')
+        show_button.setAutoDefault(True)
+        show_button.clicked.connect(dialog.close)
+        show_button.clicked.connect(self._open_instructions_dialog)
+
+        buttons_layout = QtWidgets.QHBoxLayout()
+        buttons_layout.addStretch()
+        buttons_layout.addWidget(no_button)
+        buttons_layout.addWidget(show_button)
+        buttons_layout.addStretch()
+
+        layout = QtWidgets.QVBoxLayout(dialog)
+        layout.addWidget(QtWidgets.QLabel(message))
+        layout.addSpacing(dialog.fontMetrics().height() * 2)
+        layout.addLayout(buttons_layout)
+        layout.addSpacing(dialog.fontMetrics().height() * 3)
+        layout.addWidget(QtWidgets.QLabel(post_message))
+
+        dialog.exec_()
+
     def _open_instructions_dialog(self):
         text = textwrap.dedent(f"""\
             <h1>Instructions</h1>
@@ -2779,6 +2839,11 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
         show_long_message('info', 'Instructions', text, self)
 
     def _open_about_dialog(self):
+        build_date = ''  # To be replaced at build time.
+        if not build_date:
+            # If not provided (normally when running from source code), current date is used.
+            build_date = datetime.datetime.now().strftime('%Y-%m-%d')
+
         forward_slashes_script_dir = '/'.join(script_dir.split('\\'))
         if not forward_slashes_script_dir.startswith('/'):
             forward_slashes_script_dir = f'/{forward_slashes_script_dir}'
@@ -2788,6 +2853,9 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
 
         text = textwrap.dedent(f"""\
             <h1 style="white-space: nowrap">MKDD Extender {mkdd_extender.__version__}</h1>
+            <small>{build_date}</small>
+            <br/>
+            <br/>
             <br/>
             <small><a href="https://github.com/cristian64/mkdd-extender">
                 github.com/cristian64/mkdd-extender
@@ -4338,26 +4406,49 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
 
         items = self._get_shelf_items()
 
+        screen_geometry = shelf_menu.screen().availableGeometry()
+        available_width = screen_geometry.width() * 0.80
+        available_height = screen_geometry.height() * 0.80
+
         for i, (name, course_names) in enumerate(items):
             shelf_item_widget = QtWidgets.QWidget()
             shelf_item_layout = QtWidgets.QVBoxLayout(shelf_item_widget)
-            shelf_item_layout.addWidget(QtWidgets.QLabel(generate_html(course_names)))
 
-            delete_button = QtWidgets.QPushButton('Delete')
-            delete_button.clicked.connect(lambda _checked=False, i=i: self._delete_shelf_item(i))
             load_button = QtWidgets.QPushButton('Load')
             load_button.clicked.connect(lambda _checked=False, i=i: self._load_shelf_item(i))
             load_button.clicked.connect(shelf_menu.close)
+            delete_button = QtWidgets.QPushButton('Delete')
+            delete_button.clicked.connect(lambda _checked=False, i=i: self._delete_shelf_item(i))
             buttons_layout = QtWidgets.QHBoxLayout()
-            buttons_layout.addStretch()
-            buttons_layout.addWidget(delete_button)
             buttons_layout.addWidget(load_button)
-
+            buttons_layout.addWidget(delete_button)
+            buttons_layout.addStretch()
             shelf_item_layout.addLayout(buttons_layout)
+
+            html = generate_html(course_names)
+
+            text_document = QtGui.QTextDocument()
+            text_document.setHtml(html)
+            text_document_width = text_document.size().width()
+            text_document_height = text_document.size().height()
+
+            if text_document_width > available_width or text_document_height > available_height:
+                text_edit = QtWidgets.QTextEdit()
+                text_edit.setReadOnly(True)
+                text_edit.setFrameStyle(QtWidgets.QFrame.NoFrame)
+                text_edit.setTextInteractionFlags(QtCore.Qt.NoTextInteraction)
+                text_edit.setFixedWidth(int(min(text_document_width, available_width) * 1.05))
+                text_edit.setFixedHeight(int(min(text_document_height, available_height) * 1.05))
+                text_document.setDocumentMargin(0.0)
+                text_edit.setDocument(text_document)
+                shelf_item_layout.addWidget(text_edit)
+            else:
+                shelf_item_layout.addWidget(QtWidgets.QLabel(html))
 
             shelf_item_menu = shelf_menu.addMenu(name)
             shelf_item_widget_action = QtWidgets.QWidgetAction(shelf_item_menu)
             shelf_item_widget_action.setDefaultWidget(shelf_item_widget)
+            shelf_item_widget_action.triggered.connect(load_button.clicked)
             shelf_item_menu.addAction(shelf_item_widget_action)
 
         if items:
@@ -4385,6 +4476,11 @@ class MKDDExtenderWindow(QtWidgets.QMainWindow):
 
             if input_path == output_path:
                 raise mkdd_extender.MKDDExtenderError('Input and output paths cannot be identical.')
+
+            _stem, ext = os.path.splitext(output_path)
+            if ext not in ('.iso', '.gcm'):
+                raise mkdd_extender.MKDDExtenderError(
+                    'File extension in output path should be either `.iso` or `.gcm`.')
 
             args = argparse.Namespace()
             args.input = input_path
